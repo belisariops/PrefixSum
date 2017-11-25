@@ -25,6 +25,7 @@
 #define num_threads __cilkrts_get_nworkers()
 
 class CpuPrefixSum {
+public:
     void prefix_sum_block(uint* A, uint size);
     void prefix_sum_seq(uint *A, int n);
     void prefix_sum_iter(uint *A, unsigned int n);
