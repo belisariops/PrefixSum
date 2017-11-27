@@ -14,12 +14,17 @@ __device__ int mod(int a, int b) {
 }
 
 
-__global__ void update(int *A, int *B, int size) {
+__global__ void naivePrefixSum(int *A, int *B, int size, int iteration) {
     const int index = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (index < size) {
-
-
+        if (index >= (1 << (iteration - 1)))
+            A[index] = B[(int)(index - (1 << (iteration - 1)))] + B[index];
+        else
+            A[index] = B[index];
+//        int aux = A[index];
+//        A[index] = B[index];
+//        B[index] = aux;
     }
 }
 
@@ -36,7 +41,7 @@ void destroyCuda() {
 
 }
 
-void updateCuda(int *A, int size) {
+void runCuda(int *A, int size) {
 
     // Size, in bytes, of each vector
     size_t bytes = size*sizeof(int);
@@ -44,9 +49,10 @@ void updateCuda(int *A, int size) {
 
     // Copy host vectors to device
     cudaMemcpy(d_a, A, bytes, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_b, A, bytes, cudaMemcpyHostToDevice);
 
 
-    int blockSize, gridSize, n;
+//    int blockSize, gridSize, n;
 
 //    // Tamaño de la matriz.
 //    n = height*width;
@@ -57,9 +63,14 @@ void updateCuda(int *A, int size) {
 //
 //    // Number of thread blocks in grid
 //    gridSize = (int)ceil((float)n/blockSize);
-
+    int *aux;
     // Execute the kernel
-    update<<< size, 1 >>>(d_a, d_b, size);
+    for (int i = 1; i <= (int)log2(size); ++i) {
+        naivePrefixSum<<< size, 1 >>>(d_a, d_b, size, i);
+        aux = d_b;
+        d_b = d_a;
+        d_a = aux;
+    }
 
     // Copy array back to host
     cudaMemcpy( A, d_b, bytes, cudaMemcpyDeviceToHost );

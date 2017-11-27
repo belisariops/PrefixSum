@@ -3,56 +3,60 @@
 #include <cmath>
 
 #define THREADS 8
-
-#ifdef NOPARALLEL
-#define __cilkrts_get_nworkers() 1
-#define cilk_for for
-#define cilk_spawn
-#define cilk_sync
-#else
-#include <cilk/cilk.h>
-#include <cilk/cilk_api.h>
-#include <cilk/common.h>
+//
+//#ifdef NOPARALLEL
+//#define __cilkrts_get_nworkers() 1
+//#define cilk_for for
+//#define cilk_spawn
+//#define cilk_sync
+//#else
+//#include <cilk/cilk.h>
+//#include <cilk/cilk_api.h>
+//#include <cilk/common.h>
 #include <fstream>
-#include "CPU/CpuPrefixSum.h"
+//#include "CPU/CpuPrefixSum.h"
+#include "Cuda/CudaPrefixSum.h"
 
-#endif
+//#endif
 
-#define num_threads __cilkrts_get_nworkers()
+//#define num_threads __cilkrts_get_nworkers()
 
 
 int main() {
     uint numValues;
     const unsigned int numIterations = 5;
-    CpuPrefixSum cpu = CpuPrefixSum();
-    auto start,end;
     std::ofstream myfile;
     std::string fileName = "cpu_block";
     myfile.open (fileName);
     myfile << "CPUseq " << "CPUmult" << "CUDA " << "OpenCL";
 
-    for (int i = 5; i < 31; ++i) {
-        numValues =  (uint)(1 << i);
-        uint *x = (uint *)malloc(sizeof(uint) * numValues);
-        uint *y = (uint *)malloc(sizeof(uint) * numValues);
+    for (int i = 3; i < 4; ++i) {
+        CudaPrefixSum cuda = CudaPrefixSum(1 << 20);
+        numValues =  (uint)(1 << 20);
+        int *x = (int *)malloc(sizeof(int) * numValues);
+        int *y = (int *)malloc(sizeof(int) * numValues);
 
         for (uint l = 0; l < numValues; ++l) {
             x[l] = l;
             y[l] = l;
         }
-        for (int j = 0; j < numIterations; ++j) {
-            start = std::chrono::system_clock::now();
-            cpu.prefix_sum_block(x, numValues);
-            end = std::chrono::system_clock::now();
+        for (int j = 0; j < 1; ++j) {
+            auto start = std::chrono::system_clock::now();
+            cuda.run(x);
+            auto end = std::chrono::system_clock::now();
             std::chrono::duration<double> duration = end-start;
 
         }
+
+        for (int k = 0; k < 32; ++k) {
+            std::cout << x[k] <<" ";
+        }
+        std::cout << std::endl;
 
         free(x);
         free(y);
     }
 
 
-    std::cout << duration.count() << std::endl;
     return 0;
 }
