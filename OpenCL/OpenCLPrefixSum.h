@@ -10,6 +10,7 @@
 #include <string>
 #include <memory>
 #include <stdlib.h>
+#include <cmath>
 
 #define __CL_ENABLE_EXCEPTIONS
 #ifdef __APPLE__

@@ -16,6 +16,7 @@
 #include <fstream>
 //#include "CPU/CpuPrefixSum.h"
 #include "Cuda/CudaPrefixSum.h"
+#include "OpenCL/OpenCLPrefixSum.h"
 
 //#endif
 
@@ -32,6 +33,7 @@ int main() {
 
     for (int i = 3; i < 4; ++i) {
         CudaPrefixSum cuda = CudaPrefixSum(1 << 20);
+        OpenCLPrefixSum opencl = OpenCLPrefixSum(1 << 20);
         numValues =  (uint)(1 << 20);
         int *x = (int *)malloc(sizeof(int) * numValues);
         int *y = (int *)malloc(sizeof(int) * numValues);
@@ -42,7 +44,7 @@ int main() {
         }
         for (int j = 0; j < 1; ++j) {
             auto start = std::chrono::system_clock::now();
-            cuda.runSum(x);
+            //opencl.runNaiveSum(x, 1 << 20);
             auto end = std::chrono::system_clock::now();
             std::chrono::duration<double> duration = end-start;
 

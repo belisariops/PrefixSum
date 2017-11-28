@@ -31,7 +31,7 @@ OpenCLPrefixSum::OpenCLPrefixSum(int size) {
         bufferB = cl::Buffer(context, CL_MEM_READ_ONLY, N_ELEMENTS* sizeof(int));
 
         // Read the program source
-        std::ifstream sourceFile("kernel.cl");
+        std::ifstream sourceFile("OpenCL/kernel.cl");
         std::string sourceCode(std::istreambuf_iterator<char>(sourceFile), (std::istreambuf_iterator<char>()));
         cl::Program::Sources source(1, std::make_pair(sourceCode.c_str(), sourceCode.length()));
 
@@ -62,6 +62,7 @@ void OpenCLPrefixSum::runNaiveSum(int *A, int size) {
         kernel_1.setArg( 0, bufferA );
         kernel_1.setArg( 1, bufferB );
         kernel_1.setArg( 2, size );
+        kernel_1.setArg( 3, 1 );
 
         // Execute the kernel
         cl::NDRange global( N_ELEMENTS );
