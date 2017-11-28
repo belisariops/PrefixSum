@@ -33,6 +33,7 @@ private:
     cl::Kernel kernel_1;
     cl::Kernel kernel_2;
     cl::Kernel kernel_3;
+    cl::Kernel kernel_4;
     cl::Buffer bufferA;
     cl::Buffer bufferB;
     cl::CommandQueue queue;

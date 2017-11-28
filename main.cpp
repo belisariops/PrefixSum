@@ -44,7 +44,7 @@ int main() {
         }
         for (int j = 0; j < 1; ++j) {
             auto start = std::chrono::system_clock::now();
-            //opencl.runNaiveSum(x, 1 << 20);
+            opencl.runPrefixSum(x, 1 << 20);
             auto end = std::chrono::system_clock::now();
             std::chrono::duration<double> duration = end-start;
 

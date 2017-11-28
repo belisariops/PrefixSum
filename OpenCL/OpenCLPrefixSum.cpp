@@ -45,6 +45,7 @@ OpenCLPrefixSum::OpenCLPrefixSum(int size) {
         kernel_1 = cl::Kernel(program, "naiveSum");
         kernel_2 = cl::Kernel(program, "upSweep");
         kernel_3 = cl::Kernel(program, "downSweep");
+        kernel_4 = cl::Kernel(program, "setLastToCero");
     }
     catch (cl::Error err) {
         std::cout << "Error: " << err.what() << "(" << err.err() << ")" << std::endl;
@@ -58,16 +59,21 @@ void OpenCLPrefixSum::runNaiveSum(int *A, int size) {
         queue.enqueueWriteBuffer(bufferA, CL_FALSE, 0, N_ELEMENTS * sizeof(int), A);
         queue.enqueueWriteBuffer(bufferB, CL_FALSE, 0, N_ELEMENTS * sizeof(int), A);
 
-        // Set the kernel arguments
-        kernel_1.setArg( 0, bufferA );
-        kernel_1.setArg( 1, bufferB );
-        kernel_1.setArg( 2, size );
-        kernel_1.setArg( 3, 1 );
+        for (int i = 1; i <= (int)log2(size); ++i) {
+            cl::Buffer bufferAux = bufferA;
+            bufferA = bufferB;
+            bufferB = bufferAux;
+            // Set the kernel arguments
+            kernel_1.setArg( 0, bufferA );
+            kernel_1.setArg( 1, bufferB );
+            kernel_1.setArg( 2, size );
+            kernel_1.setArg( 3, i );
+            // Execute the kernel
+            cl::NDRange global( N_ELEMENTS );
+            cl::NDRange local( 1 );
+            queue.enqueueNDRangeKernel( kernel_1, cl::NullRange, global, local );
 
-        // Execute the kernel
-        cl::NDRange global( N_ELEMENTS );
-        cl::NDRange local( 1 );
-        queue.enqueueNDRangeKernel( kernel_1, cl::NullRange, global, local );
+        }
 
         // Copy the output data back to the host
         queue.enqueueReadBuffer( bufferB, CL_TRUE, 0, N_ELEMENTS * sizeof(int), A );
@@ -87,22 +93,36 @@ void OpenCLPrefixSum::runPrefixSum(int *A, int size) {
     try {
         // Copy the input data to the input buffers using the command queue.
         queue.enqueueWriteBuffer(bufferA, CL_FALSE, 0, N_ELEMENTS * sizeof(int), A);
-        // Set the kernel arguments
-        kernel_2.setArg( 0, bufferA );
-        kernel_2.setArg( 1, size );
 
-        // Execute the kernel
         cl::NDRange global( N_ELEMENTS );
         cl::NDRange local( 1 );
-        queue.enqueueNDRangeKernel( kernel_2, cl::NullRange, global, local );
+        for (int i = 0; i <= (int)(log2(size) - 1) ; ++i) {
+            // Set the kernel arguments
+            kernel_2.setArg( 0, bufferA );
+            kernel_2.setArg( 1, size );
+            kernel_2.setArg( 2, i );
+
+            // Execute the kernel
+            queue.enqueueNDRangeKernel( kernel_2, cl::NullRange, global, local );
+        }
 
         // Set the kernel arguments
-        kernel_3.setArg( 0, bufferA );
-        kernel_3.setArg( 1, size );
+        kernel_4.setArg( 0, bufferA );
+        kernel_4.setArg( 1, size );
 
         // Execute the kernel
-        queue.enqueueNDRangeKernel( kernel_3, cl::NullRange, global, local );
+        queue.enqueueNDRangeKernel( kernel_4, cl::NullRange, global, local );
 
+
+        for (int j = (int)(log2(size) - 1); j >= 0; --j) {
+            // Set the kernel arguments
+            kernel_3.setArg( 0, bufferA );
+            kernel_3.setArg( 1, size );
+            kernel_3.setArg( 2, j );
+
+            // Execute the kernel
+            queue.enqueueNDRangeKernel( kernel_3, cl::NullRange, global, local );
+        }
 
         // Copy the output data back to the host
         queue.enqueueReadBuffer( bufferA, CL_TRUE, 0, N_ELEMENTS * sizeof(int), A );
