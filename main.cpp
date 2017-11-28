@@ -42,7 +42,7 @@ int main() {
         }
         for (int j = 0; j < 1; ++j) {
             auto start = std::chrono::system_clock::now();
-            cuda.run(x);
+            cuda.runSum(x);
             auto end = std::chrono::system_clock::now();
             std::chrono::duration<double> duration = end-start;
 
@@ -53,6 +53,19 @@ int main() {
         }
         std::cout << std::endl;
 
+        int a[32];
+        for (int m = 0; m < 32; ++m) {
+            a[m] = m;
+        }
+
+        for (int n = 1; n < 32; ++n) {
+            a[n] += a[n-1];
+        }
+
+        for (int i1 = 0; i1 < 32; ++i1) {
+            std::cout << a[i1] <<" ";
+        }
+        std::cout << std::endl;
         free(x);
         free(y);
     }

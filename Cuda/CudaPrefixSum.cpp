@@ -4,7 +4,8 @@
 
 #include "CudaPrefixSum.h"
 
-extern void runNaiveCuda(int *A, int size) ;
+extern void runNaiveCuda(int *A, int size);
+extern void runPrefixCuda(int *A, int size);
 extern void initCuda(int size);
 extern void destroyCuda();
 
@@ -17,7 +18,12 @@ CudaPrefixSum::~CudaPrefixSum() {
     destroyCuda();
 }
 
-int *CudaPrefixSum::run(int *A) {
+int *CudaPrefixSum::runNaive(int *A) {
     runNaiveCuda(A, arraySize);
+    return A;
+}
+
+int *CudaPrefixSum :: runSum(int *A) {
+    runPrefixCuda(A, arraySize);
     return A;
 }

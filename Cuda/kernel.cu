@@ -9,56 +9,48 @@ int *d_a;
 int *d_b;
 
 
-__global__ void naivePrefixSum(int *A, int *B, int size, int iterations) {
+__global__ void naivePrefixSum(int *A, int *B, int size, int iteration) {
     const int index = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (index < size) {
-        for (int i = 1; i <= iterations; ++i) {
-            if (index >= (1 << (i - 1)))
-                A[index] = B[(int) (index - (1 << (i - 1)))] + B[index];
-            else
-                A[index] = B[index];
-
-            __syncthreads();
-
-            int aux = A[index];
+        if (index >= (1 << (iteration - 1)))
+            A[index] = B[(int) (index - (1 << (iteration - 1)))] + B[index];
+        else
             A[index] = B[index];
-            B[index] = aux;
 
-            __syncthreads();
-
-        }
     }
 }
 
-__global__ void upSweep(int *A, int size, int iterations) {
+__global__ void upSweep(int *A, int size, int iteration) {
     const int index = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (index < size) {
-        for (int i = 0; i >= iterations ; ++i) {
-            if ((index + 1) % (1 << (i + 1)))
-                A[index] = A[index - (1<<i)] + A[index];
-            __syncthreads();
-        }
+        if (!((index + 1) % (1 << (iteration + 1))))
+            A[index] = A[index - (1<<iteration)] + A[index];
     }
 
 }
 
+__global__ void setLastToCero(int *A, int size) {
+    const int index = blockIdx.x * blockDim.x + threadIdx.x;
+    if (index == size - 1) {
+        A[index] = 0;
+    }
+}
 
-__global__ void downSweep(int *A, int size, int iterations) {
+
+__global__ void downSweep(int *A, int size, int iteration) {
     const int index = blockIdx.x * blockDim.x + threadIdx.x;
     if (index < size) {
         int aux;
-        for (int i = iterations; i >= 0 ; --i) {
-            if ((index + 1) % (1 << (i + 1))) {
-                aux = A[index];
-                A[index] = A[index - (1<<i)] + A[index];
-                A[index - (1<<i)] = aux;
-            }
-            __syncthreads();
+        if (!((index + 1) % (1 << (iteration + 1)))) {
+            aux = A[index - (1<<iteration)];
+            A[index - (1<<iteration)] = A[index];
+            A[index] = aux + A[index];
         }
     }
 }
+
 
 void initCuda(int size) {
     // Allocate memory for each vector on GPU
@@ -70,7 +62,6 @@ void destroyCuda() {
     // Release device memory
     cudaFree(d_a);
     cudaFree(d_b);
-
 }
 
 void runPrefixCuda(int *A, int size) {
@@ -82,12 +73,19 @@ void runPrefixCuda(int *A, int size) {
     // Copy host vectors to device
     cudaMemcpy(d_a, A, bytes, cudaMemcpyHostToDevice);
     // Execute the kernels
-    upSweep<<< size, 1 >>>(d_a, size, (int)(log2(size) - 1));
-    downSweep<<< size, 1 >>>(d_a, size, (int)(log2(size) - 1));
+    for (int i = 0; i <= (int)(log2(size) - 1) ; ++i) {
+        upSweep<<< size, 1 >>>(d_a, size, i);
+    }
+
+    setLastToCero<<<size,1>>>(d_a,size);
+
+    for (int j = (int)(log2(size) - 1); j >= 0; --j) {
+        downSweep<<< size, 1 >>>(d_a, size, j);
+    }
 
 
     // Copy array back to host
-    cudaMemcpy( A, d_b, bytes, cudaMemcpyDeviceToHost );
+    cudaMemcpy( A, d_a, bytes, cudaMemcpyDeviceToHost );
 
 }
 
@@ -115,7 +113,12 @@ void runNaiveCuda(int *A, int size) {
 //    gridSize = (int)ceil((float)n/blockSize);
     int *aux;
     // Execute the kernel
-    naivePrefixSum<<< size, 1 >>>(d_a, d_b, size, (int)log2(size));
+    for (int i = 1; i <= (int)log2(size) ; ++i) {
+        naivePrefixSum<<< size, 1 >>>(d_a, d_b, size, i);
+        aux = d_a;
+        d_a = d_b;
+        d_b = aux;
+    }
 
 
     // Copy array back to host

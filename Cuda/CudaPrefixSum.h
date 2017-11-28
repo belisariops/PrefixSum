@@ -10,7 +10,8 @@ class CudaPrefixSum {
 public:
     CudaPrefixSum(int size);
     ~CudaPrefixSum();
-    int *run(int *A);
+    int *runNaive(int *A);
+    int *runSum(int *A);
 private:
     int arraySize;
 };
