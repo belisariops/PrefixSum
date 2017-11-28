@@ -17,7 +17,6 @@ void CpuPrefixSum::prefix_sum_block(uint *A, uint size) {
             acc = A[j];
         }
     }
-
     for(uint i = 1; i < num_threads-1; i++)
         A[((i+1)*chk)-1] += A[i*chk-1];
 
